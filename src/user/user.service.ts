@@ -1,6 +1,6 @@
-  import { Injectable, NotFoundException } from '@nestjs/common';
+  import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
   import { InjectModel } from '@nestjs/mongoose';
-  import { Model } from 'mongoose';
+  import { isValidObjectId, Model, ObjectId, Types } from 'mongoose';
   import { CreateUserDto } from './dto/create-user.dto';
   import { UpdateUserDto } from './dto/update-user.dto';
   import { User, UserDocument } from './entities/user.entity';
@@ -11,15 +11,50 @@
   import { ForgotPasswordDto } from './dto/ForgotPasswordDto';
   import { ResetPasswordDto } from './dto/ResetPasswordDto';
   import { HttpException, HttpStatus } from '@nestjs/common';
+  import { v4 as uuidv4 } from 'uuid';
+  import { RefreshToken } from './entities/refresh-token.schema';
+import { ResetToken } from './entities/reset-token.schema';
+import { RolesService } from 'src/roles/roles.service';
+import { Role } from 'src/roles/schemas/role.schema';
 
   @Injectable()
   export class UserService {
 
     constructor(
+      private rolesService: RolesService,
+      @InjectModel(Role.name) private roleModel: Model<Role>, // Inject Role model
+      @InjectModel(RefreshToken.name)
+      private RefreshTokenModel: Model<RefreshToken>,
+      @InjectModel(ResetToken.name)
+      private ResetTokenModel: Model<ResetToken>,
       @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
       private readonly jwtService: JwtService,  // Inject JwtService for JWT generation
     ) { }
+    async assignRoleToUser(userId: string, name: string): Promise<User> {
 
+        const role1 = await this.rolesService.getRoleByName(name); // Get the role with the name "Freelancer"
+        const roleId= role1._id;
+      
+
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+  
+      const role = await this.roleModel.findById(roleId);
+      if (!role) {
+        throw new NotFoundException(`Role with ID ${roleId} not found`);
+      }
+      await this.userModel.findByIdAndUpdate(
+        userId,
+        { role: role._id })
+  
+     return user.save();
+    }
+    async getUserWithRole(userId: string): Promise<User> {
+      return this.userModel.findById(userId).populate('role').exec(); // Populate the role details
+    }
+  
     // Create a new user
     async create(createUserDto: CreateUserDto): Promise<User> {
       // Check if the email already exists
@@ -32,11 +67,73 @@
 
       createUserDto.password = hashedPassword;
 
+      const role = createUserDto.role;
+      const role1 = await this.rolesService.getRoleByName(role); // Get the role with the name "Freelancer"
+      createUserDto.role = role1._id.toString();
+       if (!role) {
+        throw new Error(`Role ${createUserDto.role || 'Freelancer'} not found`);
+       }
+
       // Create a new user and save to the database
       const createdUser = new this.userModel(createUserDto);  // Use the user model
       return await createdUser.save();  // Save the user
     }
+    async generateUserTokens(userId) {
+      const accessToken = this.jwtService.sign({ userId }, { expiresIn: '6s' });
+      const refreshToken = uuidv4();
+  
+      await this.storeRefreshToken(refreshToken, userId);
+      return {
+        accessToken,
+        refreshToken,
+      };
+    }
+    async storeRefreshToken(token: string, userId: string) {
+      // Calculate expiry date 3 days from now
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 3);
+  
+      await this.RefreshTokenModel.updateOne(
+        { userId },
+        { $set: { expiryDate, token } },
+        {
+          upsert: true,
+        },
+      );
+    }
+    
+  async getUserPermissions(userId: string) {
+    const user = await this.userModel.findById(userId);
 
+    if (!user) throw new BadRequestException();
+
+    const role = await this.rolesService.getRoleById(user.role.toString());
+    return role.permissions;
+  }
+
+  async login(loginDto: LoginDto): Promise<{ access_token: string }> {
+    const { username, password } = loginDto;
+
+    // Check if the user exists
+    const user = await this.userModel.findOne({ username }).exec();
+    if (!user) {
+      throw new Error('Invalid email ');
+    }
+
+    // Compare the provided password with the hashed password in the database
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid  password '+ password);
+    }
+
+    // Generate a JWT token
+    const payload = { email: user.email, sub: user._id };  // You can include any user details here
+    const access_token = this.jwtService.sign(payload);  // Generate JWT token
+    return { access_token };
+
+  }
+    // Login user and return JWT token
+  
 
 async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
   const { username, password } = loginDto;
@@ -64,40 +161,46 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
   const access_token = this.jwtService.sign(payload);
   return { access_token };
 }
-    // Login user and return JWT token
-    async login(loginDto: LoginDto): Promise<{ access_token: string }> {
-      const { username, password } = loginDto;
-
-      // Check if the user exists
-      const user = await this.userModel.findOne({ username }).exec();
-      if (!user) {
-        throw new Error('Invalid email ');
-      }
-
-      // Compare the provided password with the hashed password in the database
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        throw new Error('Invalid  password '+ password);
-      }
-  
-      // Generate a JWT token
-      const payload = { email: user.email, sub: user._id };  // You can include any user details here
-      const access_token = this.jwtService.sign(payload);  // Generate JWT token
-      return { access_token };
-
-    }
+    
 
     async findAll(): Promise<User[]> {
       return await this.userModel.find().exec(); // Retrieve all users from MongoDB
     }
 
     async findOne(id: string): Promise<User> {
-      const user = await this.userModel.findById(id).exec();
+      const user = await this.userModel.
+      findById(id)
+      .exec();
       if (!user) {
         throw new NotFoundException('User with this ID not found');
       }
       return user;
     }
+    async findByEmailOrUsername(identifier: string): Promise<{ id: string }> {
+      // Recherche l'utilisateur par email ou username
+      const user = await this.userModel
+        .findOne({ $or: [{ email: identifier }, { username: identifier }] })
+        .exec();
+    
+      if (!user) {
+        throw new NotFoundException('User with this email or username not found');
+      }
+    
+      return { id: user._id.toString() };
+    }
+    async findByEmailOrUsername2(identifier: string): Promise<{ user: User}> {
+      // Recherche l'utilisateur par email ou username
+      const user = await this.userModel
+        .findOne({ $or: [{ email: identifier }, { username: identifier }] })
+        .exec();
+    
+      if (!user) {
+        throw new NotFoundException('User with this email or username not found');
+      }
+    
+      return { user };
+    }
+    
     async findOneBy(username: string): Promise<{ id: string }> {
       const user = await this.userModel.findOne({ username }).exec();
       
@@ -142,7 +245,14 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
       }
       return updatedUser;
     }
-
+    async updateC(username: string, updateUserDto: UpdateUserDto): Promise<User> {
+      const user = await this.userModel.findOne({ username : username });
+      const updatedUser = await this.userModel.findByIdAndUpdate(user._id, updateUserDto, { new: true }).exec();
+      if (!updatedUser) {
+        throw new NotFoundException('User not found');
+      }
+      return updatedUser;
+    }
     async remove(id: string): Promise<User> {
       const deletedUser = await this.userModel.findByIdAndDelete(id).exec();
       if (!deletedUser) {
@@ -154,8 +264,9 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<{ otp: string }> {
     const { username } = forgotPasswordDto;
     
-    const user = await this.userModel.findOne({ username }).exec();
-    if (!user) {
+    const user = await this.userModel
+    .findOne({ $or: [{ email: username }, { username: username }] })
+    .exec();    if (!user) {
       throw new NotFoundException('User with this email not found');
     }
 
@@ -201,5 +312,26 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
     return { newPassword };  
   }
 
-    
+  async refreshTokens(refreshToken: string) {
+    const token = await this.RefreshTokenModel.findOne({
+      token: refreshToken,
+      expiryDate: { $gte: new Date() },
+    });
+
+    if (!token) {
+      throw new UnauthorizedException('Refresh Token is invalid');
+    }
+    return this.generateUserTokens(token.userId);
+  }
+
+  async updateUserRole(userId: string, role: string) {
+    const user = await this.userModel.findOne({ username : userId });
+    if (!user) throw new NotFoundException('User not found');
+
+    const role1 = await this.rolesService.getRoleByName(role); // Get the role with the name "Freelancer"
+
+    user.role = role1;
+    return user.save();
+}
+
   }

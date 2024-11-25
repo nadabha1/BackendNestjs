@@ -4,15 +4,27 @@ import { UserController } from './user.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './entities/user.entity';
 import { JwtModule } from '@nestjs/jwt';  // Import JwtModule
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RolesModule } from 'src/roles/roles.module';
+import { Role, RoleSchema } from 'src/roles/schemas/role.schema';
+import { RefreshToken, RefreshTokenSchema } from './entities/refresh-token.schema';
+import { ResetToken, ResetTokenSchema } from './entities/reset-token.schema';
 
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    JwtModule.register({
-      secret: 'your-secret-key',  // Use a more secure secret in production
-      signOptions: { expiresIn: '1h' },  // Set token expiry (e.g., 1 hour)
-    }),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema },
+      { name: Role.name, schema: RoleSchema }, // Importation du schema Role
+      {
+        name: RefreshToken.name,
+        schema: RefreshTokenSchema,
+      },
+      {
+        name: ResetToken.name,
+        schema: ResetTokenSchema,
+      },
+    ]),
+    RolesModule,
   ],
   controllers: [UserController],
   providers: [UserService],

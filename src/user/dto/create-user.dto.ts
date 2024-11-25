@@ -18,5 +18,13 @@ export class CreateUserDto {
     username: string;
 
     @IsString()
-    avatarUrl?: string;
+     avatarUrl?: string;
+    // @IsString()
+    // cv?: string;
+    
+    @IsString()
+    role?: string;
+    
+
+
 }

@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';  
+import { Document, SchemaTypes, Types } from 'mongoose';  
+import { Role } from 'src/roles/schemas/role.schema';
 
 export type UserDocument = User & Document; 
 @Schema()
@@ -22,6 +23,15 @@ export class User extends Document {
     otpExpires: Date;
     @Prop()
     avatarUrl?: string;
+    @Prop({ type: Types.ObjectId, ref: 'Role', default: null }) // Reference to the Role schema
+    role: Role ;
+
+    @Prop({ required: false })  // Optional OTP expiration field
+    dateOfBirth: string;
+    @Prop({ required: false })  // Optional OTP expiration field
+    country: string;
+    
+   
 
 
 }
