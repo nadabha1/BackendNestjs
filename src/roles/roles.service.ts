@@ -18,7 +18,16 @@ export class RolesService {
   async getRoles(): Promise<Role[]> {
     return this.RoleModel.find().exec();
   }
-
+  async getRoleById1(roleId: string): Promise<{id:String}> {
+    const role = await this.RoleModel.findById(roleId);
+    return { id: role.id};
+  }
+  async getRoleNameById(roleId: string): Promise<{name:String}> {
+    const role = await this.RoleModel.findById(roleId);
+    console.log(role.name);
+    const roleName = role.name
+    return { name: roleName};
+  }
   // Récupérer un rôle par son ID
   async getRoleById(roleId: string): Promise<Role> {
     return this.RoleModel.findById(roleId).exec();

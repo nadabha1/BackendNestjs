@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException, HttpException, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException, HttpException, HttpStatus, Put,Query, BadRequestException  } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -7,6 +7,8 @@ import { ForgotPasswordDto } from './dto/ForgotPasswordDto';
 import { ResetPasswordDto } from './dto/ResetPasswordDto';
 import { RefreshTokenDto } from './dto/refresh-tokens.dto';
 import { CreateUserC } from './dto/CreateUserCont.dto';
+import { GetUserProfileDto } from './dto/get-user-profile.dto';
+import { User } from './entities/user.entity';
 
 @Controller('user')
 export class UserController {
@@ -35,6 +37,7 @@ async login(@Body() loginDto: LoginDto) {
   }
 }
 
+
 @Post('refresh')
 async refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
   return this.userService.refreshTokens(refreshTokenDto.refreshToken);
@@ -50,10 +53,7 @@ async refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.userService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) { // id is a string
-    return this.userService.findOne(id);
-  }
+
   @Post('get-id')
 async getUserId(@Body('username') username: string): Promise<{ id: string }> {
 
@@ -103,4 +103,39 @@ async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
 async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
   return this.userService.verifyOtpAndResetPassword(resetPasswordDto);  // Call verifyOtpAndResetPassword
 }
+
+@Get('profile')
+async getUserProfile(@Query('email') email: string): Promise<Partial<User>> {
+    console.log('Email received:', email); // Debug log
+    if (!email) {
+        throw new BadRequestException('Email query parameter is required');
+    }
+
+    const user = await this.userService.getUserProfile(email);
+    if (!user) {
+        throw new NotFoundException(`User with email ${email} not found`);
+    }
+
+    
+    return {
+        id: user._id.toString(),
+        username: user.username,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+        dateOfBirth: user.dateOfBirth,
+        country: user.country,
+        role: user.role,
+    };
+}
+
+@Post('getnameRole')
+async getRoleNameByID(@Body('id') id: string) {
+  return this.userService.getRole(id);
+}
+
+@Post('getIdRole')
+async getRoleNameByUserID(@Body('id') id: string) {
+  return this.userService.getRoleByUserId(id);
+}
+
 }

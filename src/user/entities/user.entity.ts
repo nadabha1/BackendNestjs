@@ -25,14 +25,9 @@ export class User extends Document {
     avatarUrl?: string;
     @Prop({ type: Types.ObjectId, ref: 'Role', default: null }) // Reference to the Role schema
     role: Role ;
-
     @Prop({ required: false })  // Optional OTP expiration field
     dateOfBirth: string;
     @Prop({ required: false })  // Optional OTP expiration field
     country: string;
-    
-   
-
-
 }
 export const UserSchema = SchemaFactory.createForClass(User);

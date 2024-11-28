@@ -9,6 +9,8 @@ import { RolesModule } from './roles/roles.module';
 import { CvAnalysisModule } from './cv-analysis/cv-analysis.module';
 import { CvModule } from './cv/cv.module';
 import { AiModule } from './ai/ai.module';
+import { ProjetModule } from './projet/projet.module';
+import { ProjectFilterModule } from './project-filter/project-filter.module';
 import config from './config/config';
 
 
@@ -33,6 +35,8 @@ import config from './config/config';
     CvAnalysisModule,
     CvModule,
     AiModule,
+    ProjetModule,
+    ProjectFilterModule,
 
   ],
   controllers: [AppController],

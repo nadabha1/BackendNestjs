@@ -54,7 +54,21 @@ import { Role } from 'src/roles/schemas/role.schema';
     async getUserWithRole(userId: string): Promise<User> {
       return this.userModel.findById(userId).populate('role').exec(); // Populate the role details
     }
+    async getRole(userId: string): Promise<{ role:String }> {
+      const user = await this.userModel.findById(userId).exec(); // Populate the role details
+      const roleid = user._id.toString();
+      const role = await this.rolesService.getRoleNameById(roleid); 
+      return { role: role.name };
+    }
   
+    async getRoleByUserId(userId: string): Promise<{idRole:String}> {
+     
+      const user = await this.userModel.findById(userId).exec(); // Populate the role details
+      const roleid = user.role._id.toString();
+      const name = await this.rolesService.getRoleNameById(roleid);
+
+      return {idRole:name.name}
+    }
     // Create a new user
     async create(createUserDto: CreateUserDto): Promise<User> {
       // Check if the email already exists
@@ -111,7 +125,7 @@ import { Role } from 'src/roles/schemas/role.schema';
     return role.permissions;
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string }> {
+  async login(loginDto: LoginDto): Promise<{ access_token: string ,id:string,username:string}> {
     const { username, password } = loginDto;
 
     // Check if the user exists
@@ -129,7 +143,8 @@ import { Role } from 'src/roles/schemas/role.schema';
     // Generate a JWT token
     const payload = { email: user.email, sub: user._id };  // You can include any user details here
     const access_token = this.jwtService.sign(payload);  // Generate JWT token
-    return { access_token };
+    const id = user._id.toString();
+      return { access_token , id,username: user.username};
 
   }
     // Login user and return JWT token
@@ -167,15 +182,6 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
       return await this.userModel.find().exec(); // Retrieve all users from MongoDB
     }
 
-    async findOne(id: string): Promise<User> {
-      const user = await this.userModel.
-      findById(id)
-      .exec();
-      if (!user) {
-        throw new NotFoundException('User with this ID not found');
-      }
-      return user;
-    }
     async findByEmailOrUsername(identifier: string): Promise<{ id: string }> {
       // Recherche l'utilisateur par email ou username
       const user = await this.userModel
@@ -200,7 +206,21 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
     
       return { user };
     }
-    
+    async getUserProfile(emailOrUsername: string): Promise<User> {
+      const query = isValidObjectId(emailOrUsername)
+          ? { _id: emailOrUsername }
+          : { $or: [{ email: emailOrUsername }, { username: emailOrUsername }] };
+  
+      const user = await this.userModel.findOne(query).exec();
+  
+      if (!user) {
+          throw new NotFoundException(`User with email or username ${emailOrUsername} not found`);
+      }
+  
+      return user;
+  }
+
+  
     async findOneBy(username: string): Promise<{ id: string }> {
       const user = await this.userModel.findOne({ username }).exec();
       

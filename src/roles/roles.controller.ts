@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Param, Body } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Query, NotFoundException } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dtos/role.dto';
+import { Role } from './schemas/role.schema';
 
 @Controller('roles')
 export class RolesController {
@@ -16,8 +17,15 @@ export class RolesController {
     return this.rolesService.getRoles();
   }
 
-  @Get(':id')
-  async getRoleById(@Param('id') id: string) {
-    return this.rolesService.getRoleById(id);
+  @Get('get-id')
+  async getRoleById1(@Body('id') id: string) {
+    return this.rolesService.getRoleById1(id);
   }
+
+  @Get('getname')
+  async getRoleNameByID(@Body('id') id: string) {
+    return this.rolesService.getRoleNameById(id);
+  }
+
+
 }
