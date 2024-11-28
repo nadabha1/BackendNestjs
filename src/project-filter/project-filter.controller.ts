@@ -10,4 +10,9 @@ export class ProjectFilterController {
     const { skills, projects } = body;
     return await this.projectFilterService.filterProjects(skills, projects);
   }
+  @Post('filterPer')
+  async filterProjects2(@Body() body: { id: string }) {
+    const { id } = body;
+    return await this.projectFilterService.filterProjectsPers(id);
+  }
 }

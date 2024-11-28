@@ -29,5 +29,7 @@ export class User extends Document {
     dateOfBirth: string;
     @Prop({ required: false })  // Optional OTP expiration field
     country: string;
+    @Prop({ required: false })  // Optional OTP expiration field
+    skills: string;
 }
 export const UserSchema = SchemaFactory.createForClass(User);

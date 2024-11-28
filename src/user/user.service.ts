@@ -177,8 +177,12 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
   return { access_token };
 }
     
-
+async findUserById(id:String): Promise<{skills :string} > {
+  const user = await this.userModel.findById(id); // Retrieve all users from MongoDB
+ return {skills:user.skills } 
+}
     async findAll(): Promise<User[]> {
+
       return await this.userModel.find().exec(); // Retrieve all users from MongoDB
     }
 

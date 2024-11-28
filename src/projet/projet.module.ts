@@ -11,5 +11,7 @@ import { Projet, ProjetSchema } from './entities/projet.entity';
   ],
   controllers: [ProjetController],
   providers: [ProjetService],
+  exports: [ProjetService,ProjetModule], // Uncomment this line to make the CvService available for other modules
+
 })
 export class ProjetModule {}

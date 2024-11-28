@@ -52,7 +52,10 @@ async refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
   findAll() {
     return this.userService.findAll();
   }
-
+  @Post('id')
+  find(@Body('id') id: string) {
+    return this.userService.findUserById(id);
+  }
 
   @Post('get-id')
 async getUserId(@Body('username') username: string): Promise<{ id: string }> {

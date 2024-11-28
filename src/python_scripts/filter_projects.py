@@ -31,8 +31,13 @@ def main():
         ranked_projects = sorted(
             [
                 {
-                    "project": project['title'],  # Project title
-                    "description": project['technologies'],  # Technologies
+                    "id":project['_id'],
+                    "title": project['title'],  # Project title
+                    "technologies": project['technologies'],  # Technologies
+                    "description": project['description'],
+                    "budget": project['budget'],
+                    "status": project['status'],
+                    "duration": project['duration'],
                     "score": float(score)  # Match score
                 }
                 for project, score in zip(projects, similarities[0].cpu().numpy())
