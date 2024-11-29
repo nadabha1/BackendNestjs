@@ -11,8 +11,7 @@ export class ProjectFilterController {
     return await this.projectFilterService.filterProjects(skills, projects);
   }
   @Post('filterPer')
-  async filterProjects2(@Body() body: { id: string }) {
-    const { id } = body;
+  async filterProjects2(@Body('userId') id: string) {
     return await this.projectFilterService.filterProjectsPers(id);
   }
 }

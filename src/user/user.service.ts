@@ -178,7 +178,13 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
 }
     
 async findUserById(id:String): Promise<{skills :string} > {
+  console.log('yodkhel b user id:', id);
+
   const user = await this.userModel.findById(id); // Retrieve all users from MongoDB
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
  return {skills:user.skills } 
 }
     async findAll(): Promise<User[]> {

@@ -64,14 +64,19 @@ export class ProjectFilterService {
     async filterProjectsPers(id: string): Promise<any> {
       return new Promise(async (resolve, reject) => {
         const scriptPath = path.join(process.cwd(), 'src', 'python_scripts', 'filter_projects.py');
-        
+        console.log('bdeeeeee');
+        console.log('id:', id);
+
         try {
+
           // Await the results of the asynchronous calls
           const projects = await this.projetService.findAll();
+
           const user = await this.userService.findUserById(id); // Ensure this returns user data with skills or relevant info
+          console.log('useer', user);
+
           const skills = user.skills;  // Assuming `skills` is a property of the user object returned
     
-          console.log('Projects:', projects);
           console.log('Skills:', skills);
           console.log('id:', id);
     

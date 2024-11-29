@@ -47,7 +47,9 @@ def main():
         )
 
         # Output the results as JSON
-        print(json.dumps({"ranked_projects": ranked_projects}))
+        print(json.dumps(ranked_projects))
+        #print(json.dumps({"ranked_projects": ranked_projects}))
+
 
     except KeyError as e:
         print(f"KeyError: {str(e)}", file=sys.stderr)
