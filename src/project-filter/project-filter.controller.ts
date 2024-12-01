@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Query } from '@nestjs/common';
 import { ProjectFilterService } from './project-filter.service';
 
 @Controller('project-filter')
@@ -14,4 +14,10 @@ export class ProjectFilterController {
   async filterProjects2(@Body('userId') id: string) {
     return await this.projectFilterService.filterProjectsPers(id);
   }
+
+  @Post('filterPer2')
+async filterProjects22(@Query('userId') userId: string) {
+    return await this.projectFilterService.filterProjectsPers(userId);
+}
+
 }

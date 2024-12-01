@@ -24,8 +24,8 @@ export class CreateUserDto {
     
     @IsString()
     role?: string;
-    @IsString()
-    skills?: string;
+
+  
 
 
     
