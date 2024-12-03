@@ -11,6 +11,8 @@ import { CvModule } from './cv/cv.module';
 import { AiModule } from './ai/ai.module';
 import { ProjetModule } from './projet/projet.module';
 import { ProjectFilterModule } from './project-filter/project-filter.module';
+import { ApplicationModule } from './application/application.module';
+import { NotificationModule } from './notification/notification.module';
 import config from './config/config';
 
 
@@ -37,6 +39,8 @@ import config from './config/config';
     AiModule,
     ProjetModule,
     ProjectFilterModule,
+    ApplicationModule,
+    NotificationModule,
 
   ],
   controllers: [AppController],

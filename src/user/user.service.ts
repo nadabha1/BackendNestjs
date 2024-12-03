@@ -269,6 +269,7 @@ async findUserById(idUser:String): Promise<{skills :string} > {
       return updatedUser;    
     }
     async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+      
       const updatedUser = await this.userModel.findByIdAndUpdate(id, updateUserDto, { new: true }).exec();
       if (!updatedUser) {
         throw new NotFoundException('User not found');

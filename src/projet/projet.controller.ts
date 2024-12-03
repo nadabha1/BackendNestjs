@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ProjetService } from './projet.service';
 import { CreateProjetDto } from './dto/create-projet.dto';
 import { UpdateProjetDto } from './dto/update-projet.dto';
@@ -23,6 +23,13 @@ export class ProjetController {
     return this.projetService.findByUserId(userId);
     
   }
+  @Post('user2') // Route to fetch projects by userId
+  async getByUserId2(@Query('userId') userId: string) {
+    console.log("dkhall ll back"+userId);
+    return this.projetService.findByUserId(userId);
+    
+  }
+
 
   @Get('getAll')
   GetByIDUser(@Body('id') id: string) {
@@ -44,4 +51,5 @@ export class ProjetController {
   remove(@Body('id') id: string) {
     return this.projetService.remove(id);
   }
+  
 }

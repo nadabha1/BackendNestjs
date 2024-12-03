@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { User } from 'src/user/entities/user.entity';
 
 export type ProjetDocument = Projet & Document;
 
@@ -25,6 +26,8 @@ export class Projet extends Document {
     status: string;
     @Prop({ required: true}) // Status field with default value
     userId: string;
+    @Prop({ type: [{ type: String, ref: 'User' }] })
+    applications?: User[];
 }
 
 export const ProjetSchema = SchemaFactory.createForClass(Projet);
