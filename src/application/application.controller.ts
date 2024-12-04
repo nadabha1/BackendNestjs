@@ -59,7 +59,7 @@ export class ApplicationController {
   async getApplicationStatus(
     @Body('freelancerId') freelancerId: string,
     @Body('projectId') projectId: string,
-  ): Promise<{ status: string }> {
+  ): Promise<{ freelancer:string,status: string }> {
     console.log('Received freelancerId:', freelancerId);
     console.log('Received projectId:', projectId);
   
@@ -68,7 +68,7 @@ export class ApplicationController {
     }
   
     const status = await this.applicationService.getApplicationStatus(freelancerId, projectId);
-    return { status };
+    return { freelancer:freelancerId ,status };
   }
   
   
