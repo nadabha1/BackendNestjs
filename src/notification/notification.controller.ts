@@ -10,9 +10,10 @@ export class NotificationController {
   async createNotification(
     @Body('projectId') projectId: string,
     @Body('entrepreneurId') entrepreneurId: string,
+    @Body('freelancerId')  freelancerId: string,
     @Body('message') message: string
   ) {
-    return this.notificationService.createNotification(projectId, entrepreneurId, message);
+    return this.notificationService.createNotification(projectId, entrepreneurId,freelancerId, message);
   }
 
   // Endpoint to get all notifications for a specific entrepreneur
@@ -22,11 +23,19 @@ export class NotificationController {
   ) {
     return this.notificationService.getNotificationsForEntrepreneur(entrepreneurId);
   }
+ 
+
   @Post('entrepreneur')
   async getNotificationsForEntrepreneurIOs(
     @Body('entrepreneurId') entrepreneurId: string
   ) {
     return this.notificationService.getNotificationsForEntrepreneur(entrepreneurId);
+  }
+  @Post('freelancer')
+  async getNotificationsForFreelancerIOs(
+    @Body('freelancerId') freelancerId: string
+  ) {
+    return this.notificationService.getfreelancer(freelancerId);
   }
   // Endpoint to mark a notification as read
   @Patch(':notificationId')

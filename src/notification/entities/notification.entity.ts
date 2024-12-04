@@ -8,6 +8,10 @@ export class Notification {
 
   @Prop({ type: String, required: true })
   entrepreneurId: string;
+  
+  @Prop({ type: String, required: true })
+  freelancerId: string;
+
 
   @Prop({ type: String, required: true })
   message: string;

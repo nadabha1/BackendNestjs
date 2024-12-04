@@ -15,7 +15,7 @@ export class Application {
     project: Projet;
   
 
-  @Prop({ enum: ['pending', 'accepted', 'rejected'], default: 'pending' })
+  @Prop({ enum: ['Pending', 'Accepted', 'Rejected'], default: 'pending' })
   status: string;  // Statut de la candidature
 }
 

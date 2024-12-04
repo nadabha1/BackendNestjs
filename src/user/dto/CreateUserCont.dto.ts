@@ -16,6 +16,12 @@ export class CreateUserC {
     dateOfBirth: string;
     @IsString()
     country: string;
+
+    @IsString()
+    cv?: string;
+
+    @IsString()
+    skills?: string;
     
 
 }

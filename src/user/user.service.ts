@@ -253,7 +253,16 @@ async findUserById(idUser:String): Promise<{skills :string} > {
         username: user.username
       };
     }
+    async findUserInfoById(freelancerId: string): Promise<User> {
+      console.log('findUserInfoById', freelancerId);
+      const user = await this.userModel.findOne({ _id: freelancerId }).exec();
+      
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
     
+      return user;
+    }
     async updateProfile(username: string, updateUserProfileDto: UpdateUserDto) {
       // Exemple : Mettez à jour les informations de l'utilisateur dans la base de données
       const user = await this.userModel.findOne({ username }).exec();

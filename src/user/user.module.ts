@@ -28,7 +28,7 @@ import { ResetToken, ResetTokenSchema } from './entities/reset-token.schema';
   ],
   controllers: [UserController],
   providers: [UserService],
-  exports: [UserService], // Uncomment this line to make the CvService available for other modules
+  exports: [UserService,UserModule], // Uncomment this line to make the CvService available for other modules
 
 })
 export class UserModule {}
