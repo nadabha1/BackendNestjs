@@ -13,7 +13,10 @@ import { ProjetModule } from './projet/projet.module';
 import { ProjectFilterModule } from './project-filter/project-filter.module';
 import { ApplicationModule } from './application/application.module';
 import { NotificationModule } from './notification/notification.module';
+import { TaskModule } from './task/task.module';
+import { StripeModule } from './stripe/stripe.module';
 import config from './config/config';
+import { WebsocketsModule } from './websockets/websockets.module';
 
 
 @Module({
@@ -41,6 +44,10 @@ import config from './config/config';
     ProjectFilterModule,
     ApplicationModule,
     NotificationModule,
+    TaskModule,
+    StripeModule,
+    WebsocketsModule,
+  
 
   ],
   controllers: [AppController],

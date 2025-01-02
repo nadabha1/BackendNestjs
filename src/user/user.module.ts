@@ -28,7 +28,8 @@ import { ResetToken, ResetTokenSchema } from './entities/reset-token.schema';
   ],
   controllers: [UserController],
   providers: [UserService],
-  exports: [UserService,UserModule], // Uncomment this line to make the CvService available for other modules
+  exports: [UserService,UserModule,MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+], // Uncomment this line to make the CvService available for other modules
 
 })
 export class UserModule {}

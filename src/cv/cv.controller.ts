@@ -38,7 +38,7 @@ export class CvController {
     console.log('Uploaded file:', file);
 
     const fileType = file.mimetype.includes('pdf') ? 'pdf' : 'image';
-    const analysis = await this.cvService.processCv(file.path, fileType);
+    const analysis = await this.cvService.processCv2(file.path, fileType);
     return analysis;
   }
   

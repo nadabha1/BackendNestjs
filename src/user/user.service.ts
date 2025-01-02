@@ -16,9 +16,11 @@
 import { ResetToken } from './entities/reset-token.schema';
 import { RolesService } from 'src/roles/roles.service';
 import { Role } from 'src/roles/schemas/role.schema';
+import * as SibApiV3Sdk from 'sib-api-v3-sdk';
 
   @Injectable()
   export class UserService {
+    private readonly apiInstance: SibApiV3Sdk.TransactionalEmailsApi;
 
     constructor(
       private rolesService: RolesService,
@@ -30,6 +32,24 @@ import { Role } from 'src/roles/schemas/role.schema';
       @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
       private readonly jwtService: JwtService,  // Inject JwtService for JWT generation
     ) { }
+    
+    async updateSkills(userId: string, skills: string[]): Promise<User> {
+      console.log('Received skills data:', skills);
+    
+      const cleanedSkills = skills.map(skill => skill.trim()).filter(skill => skill !== '');
+      console.log('Cleaned skills:', cleanedSkills);
+    
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+    
+      user.skills = cleanedSkills; // Update the cleaned skills
+      await user.save();
+      return user;
+    }
+    
+    
     async assignRoleToUser(userId: string, name: string): Promise<User> {
 
         const role1 = await this.rolesService.getRoleByName(name); // Get the role with the name "Freelancer"
@@ -64,6 +84,7 @@ import { Role } from 'src/roles/schemas/role.schema';
     async getRoleByUserId(userId: string): Promise<{idRole:String}> {
      
       const user = await this.userModel.findById(userId).exec(); // Populate the role details
+      console.log(user.role.name);
       const roleid = user.role._id.toString();
       const name = await this.rolesService.getRoleNameById(roleid);
 
@@ -154,7 +175,10 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
   const { username, password } = loginDto;
 
   // Vérifier si l'utilisateur existe
-  const user = await this.userModel.findOne({ username }).exec();
+  const user = await this.userModel.
+  findOne({ $or: [{ email: username }, { username: username }] })
+
+  .exec();
   if (!user) {
     throw new HttpException(
       { message: 'Invalid username' },
@@ -177,15 +201,47 @@ async login2(loginDto: LoginDto): Promise<{ access_token: string }> {
   return { access_token };
 }
     
-async findUserById(idUser:String): Promise<{skills :string} > {
-  console.log('yodkhel b user id:', idUser);
+async findUserById(idUser:string): Promise<{skills :string[]} > {
+  if (!idUser || !Types.ObjectId.isValid(idUser)) {
+    throw new BadRequestException('Invalid or missing user ID');
+}
 
-  const user = await this.userModel.findById(idUser); // Retrieve all users from MongoDB
+const user = await this.userModel.findById(idUser);
+if (!user) {
+    throw new NotFoundException('User not found');
+}
+ return {skills:user.skills } 
+}
+
+
+async sendBanEmail(to: string, userName: string): Promise<void> {
+  console.log(to);
+  const emailData = {
+    sender: { email: 'nadabha135@gmail.com', name: 'Admin' },
+    to: [{ email: to }],
+    subject: 'Votre compte a été banni',
+    htmlContent: `<h1>Bonjour ${userName},</h1>
+                  <p>Nous vous informons que votre compte a été banni en raison d'une violation de nos politiques.</p>
+                  <p>Pour toute question, contactez-nous à support@example.com.</p>`,
+  };
+
+  try {
+    const response = await this.apiInstance.sendTransacEmail(emailData);
+    console.log('Email envoyé avec succès :', response);
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi de l\'email :', error);
+    throw new Error('L\'envoi de l\'email a échoué.');
+  }
+}
+
+async findUsersInfoById(): Promise<User[]> {
+  console.log('findUsersssInfo');
+  const user = await this.userModel.find({ role: "673e02ebe32a0b161563e961" }).exec();
   if (!user) {
     throw new NotFoundException('User not found');
   }
 
- return {skills:user.skills } 
+  return user;
 }
     async findAll(): Promise<User[]> {
 
@@ -253,6 +309,7 @@ async findUserById(idUser:String): Promise<{skills :string} > {
         username: user.username
       };
     }
+
     async findUserInfoById(freelancerId: string): Promise<User> {
       console.log('findUserInfoById', freelancerId);
       const user = await this.userModel.findOne({ _id: freelancerId }).exec();

@@ -4,6 +4,9 @@ import { Model } from 'mongoose';
 import { CreateProjetDto } from './dto/create-projet.dto';
 import { UpdateProjetDto } from './dto/update-projet.dto';
 import { Projet, ProjetDocument } from './entities/projet.entity';
+import * as SibApiV3Sdk from 'sib-api-v3-sdk';
+import { UserService } from 'src/user/user.service';
+import { User } from 'src/user/entities/user.entity';
 
 
 @Injectable()
@@ -11,15 +14,43 @@ export class ProjetService {
 
   constructor(
     @InjectModel(Projet.name) private readonly projetModel: Model<ProjetDocument>,
+    private readonly apiInstance: SibApiV3Sdk.TransactionalEmailsApi,
+    private readonly userService: UserService,
   ) { }
-
+  async getfreelancers(): Promise<User[]> {
+    return this.userService.findUsersInfoById();
+  }
   // Create a new Projet
   async create(createProjetDto: CreateProjetDto): Promise<Projet> {
     // Create a new Projet and save to the database
+   
+    const users = await this.getfreelancers();
+
     const createdProjet = new this.projetModel(createProjetDto);  // Use the Projet model
     return await createdProjet.save();  // Save the Projet
+
+    
   }
   
+
+  async sendEmailProjects(to: string, userName: string, message : string): Promise<void> {
+    console.log(to);
+    const emailData = {
+      sender: { email: 'nadabha135@gmail.com', name: 'Admin' },
+      to: [{ email: to }],
+      subject: 'Noveau Projet ',
+      htmlContent: `<h1>Bonjour ${userName},</h1>
+                    <p>${message}.</p>`,
+    };
+  
+    try {
+      const response = await this.apiInstance.sendTransacEmail(emailData);
+      console.log('Email envoyé avec succès :', response);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de l\'email :', error);
+      throw new Error('L\'envoi de l\'email a échoué.');
+    }
+  }
   async findAll(): Promise<Projet[]> {
     return await this.projetModel.find().exec(); // Retrieve all Projets from MongoDB
   }

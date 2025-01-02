@@ -17,6 +17,7 @@ export class ProjectFilterController {
 
   @Post('filterPer2')
 async filterProjects22(@Query('userId') userId: string) {
+  console.log('filterProject', userId);
     return await this.projectFilterService.filterProjectsPers(userId);
 }
 

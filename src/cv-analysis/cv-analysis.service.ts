@@ -1,26 +1,59 @@
 import { Injectable } from '@nestjs/common';
-import { CreateCvAnalysisDto } from './dto/create-cv-analysis.dto';
-import { UpdateCvAnalysisDto } from './dto/update-cv-analysis.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { spawn } from 'child_process';
+import * as fs from 'fs';
+import { Model } from 'mongoose';
+import { User } from 'src/user/entities/user.entity';
 
 @Injectable()
 export class CvAnalysisService {
-  create(createCvAnalysisDto: CreateCvAnalysisDto) {
-    return 'This action adds a new cvAnalysis';
+  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+
+  async analyzeCv(filePath: string): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      if (!fs.existsSync(filePath)) {
+        return reject(new Error('File does not exist.'));
+      }
+
+      const pythonProcess = spawn('python', ['src/python_scripts/process_cv.py']);
+      pythonProcess.stdin.write(JSON.stringify({ filePath }));
+      pythonProcess.stdin.end();
+
+      let resultData = '';
+      let errorData = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        resultData += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        errorData += data.toString();
+      });
+
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          console.error('Python script error output:', errorData);
+          reject(new Error(`Python script error: ${errorData}`));
+        } else {
+          try {
+            const parsedData = JSON.parse(resultData);
+            resolve(parsedData.skills || []);
+          } catch (err) {
+            reject(new Error('Failed to parse Python script output.'));
+          }
+        }
+      });
+    });
   }
 
-  findAll() {
-    return `This action returns all cvAnalysis`;
-  }
+  async saveSkillsToUser(userId: string, skills: string[]): Promise<User> {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new Error('User not found.');
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} cvAnalysis`;
-  }
-
-  update(id: number, updateCvAnalysisDto: UpdateCvAnalysisDto) {
-    return `This action updates a #${id} cvAnalysis`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} cvAnalysis`;
+    user.skills = [...new Set([...(user.skills || []), ...skills])];
+    await user.save();
+    return user;
   }
 }

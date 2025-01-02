@@ -25,7 +25,7 @@ export class ProjetController {
   }
   @Post('user2') // Route to fetch projects by userId
   async getByUserId2(@Query('userId') userId: string) {
-    console.log("dkhall ll back"+userId);
+    console.log("dkhall ll back" + userId);
     return this.projetService.findByUserId(userId);
     
   }

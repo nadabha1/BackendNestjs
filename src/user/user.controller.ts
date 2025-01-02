@@ -14,7 +14,15 @@ import { User } from './entities/user.entity';
 export class UserController {
   constructor(private readonly userService: UserService) {}
  
-
+  @Patch('createProfile')
+  createProfile(@Body() updateUserDto: CreateUserC) {
+    console.log("Received Data:", updateUserDto);
+    if (!updateUserDto.username || !updateUserDto.dateOfBirth || !updateUserDto.country) {
+      throw new BadRequestException('Missing required fields');
+    }
+    return this.userService.updateC(updateUserDto.username, updateUserDto);
+  }
+  
   @Put('update-role')
 async updateRole(@Body() updateRoleRequest: { role: string; userId: string }) {
     const { role, userId } = updateRoleRequest;
@@ -76,12 +84,6 @@ async getUser(@Body('username') username: string) {
 update(@Body() updateUserDto: UpdateUserDto) {
   return this.userService.update(updateUserDto.idUser, updateUserDto);
 }
-@Patch('createProfile')
-createProfile(@Body() updateUserDto: CreateUserC) {
-  return this.userService.updateC(updateUserDto.username, updateUserDto);
-}
-
-
 
   @Patch('update/:id')  // Exemple d'URL: /user/update/:id
   async updateProfile(
@@ -140,5 +142,18 @@ async getRoleNameByID(@Body('id') id: string) {
 async getRoleNameByUserID(@Body('id') id: string) {
   return this.userService.getRoleByUserId(id);
 }
+@Patch('updateSkills/:userId')
+async updateSkills(
+  @Param('userId') userId: string,
+  @Body() body: { skills: string[] },
+) {
+  console.log('Update skills request:', userId, body);
+  if (!Array.isArray(body.skills)) {
+    throw new BadRequestException('Skills must be an array of strings');
+  }
+  return this.userService.updateSkills(userId, body.skills);
+}
+
+
 
 }

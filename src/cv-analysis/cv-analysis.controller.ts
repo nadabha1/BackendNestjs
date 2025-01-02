@@ -1,34 +1,59 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Param,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+} from '@nestjs/common';
 import { CvAnalysisService } from './cv-analysis.service';
-import { CreateCvAnalysisDto } from './dto/create-cv-analysis.dto';
-import { UpdateCvAnalysisDto } from './dto/update-cv-analysis.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @Controller('cv-analysis')
 export class CvAnalysisController {
-  constructor(private readonly cvAnalysisService: CvAnalysisService) {}
+  constructor(private readonly analyse: CvAnalysisService) {}
 
-  @Post()
-  create(@Body() createCvAnalysisDto: CreateCvAnalysisDto) {
-    return this.cvAnalysisService.create(createCvAnalysisDto);
-  }
+  @Post('upload/:userId')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, callback) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          callback(null, `${uniqueSuffix}${ext}`);
+        },
+      }),
+      fileFilter: (req, file, callback) => {
+        if (file.mimetype === 'application/pdf') {
+          callback(null, true);
+        } else {
+          callback(new Error('Only PDF files are allowed.'), false);
+        }
+      },
+    }),
+  )
+  async uploadCv(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('userId') userId: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required.');
+    }
 
-  @Get()
-  findAll() {
-    return this.cvAnalysisService.findAll();
-  }
+    try {
+      const skills = await this.analyse.analyzeCv(file.path);
+      const user = await this.analyse.saveSkillsToUser(userId, skills);
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cvAnalysisService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCvAnalysisDto: UpdateCvAnalysisDto) {
-    return this.cvAnalysisService.update(+id, updateCvAnalysisDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cvAnalysisService.remove(+id);
+      return {
+        message: 'Skills extracted and saved successfully.',
+        skills,
+        user,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

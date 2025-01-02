@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as Tesseract from 'tesseract.js';
 import * as pdf from 'pdf-parse';
 import * as fs from 'fs';
@@ -9,6 +9,7 @@ import { env } from 'process';
 @Injectable()
 export class CvService {
   constructor(private readonly httpService: HttpService) {}
+  private readonly logger = new Logger(CvService.name);
 
   // Extract text from an image using Tesseract
   async extractTextFromImage(imagePath: string): Promise<string> {
@@ -32,6 +33,46 @@ export class CvService {
       console.error('PDF parsing failed:', error.message);
       throw new Error('Failed to parse the uploaded PDF');
     }
+  }
+  
+
+  async analyzeWithHuggingFace(text: string): Promise<any> {
+    const apiKey = "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"; // Remplace par ta clé API Hugging Face
+    const model = 'dslim/bert-base-NER';
+    const url = `https://api-inference.huggingface.co/models/${model}`;
+  
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await lastValueFrom(
+          this.httpService.post(
+            url,
+            {
+              inputs: text,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          ),
+        );
+  
+        console.log('Réponse de NER:', response.data);
+        return response.data;
+      } catch (error) {
+        const estimatedTime = error.response?.data?.estimated_time;
+        if (error.response?.data?.error.includes('currently loading') && estimatedTime) {
+          console.log(`Le modèle est en cours de chargement. Réessayer dans ${estimatedTime} secondes.`);
+          await new Promise((resolve) => setTimeout(resolve, estimatedTime * 1000)); // Attendre avant de réessayer
+        } else {
+          console.error('Erreur avec l’API Hugging Face:', error.response?.data || error.message);
+          throw new Error('Impossible d’analyser le texte avec Hugging Face');
+        }
+      }
+    }
+  
+    throw new Error('Le modèle n’est toujours pas prêt après plusieurs tentatives.');
   }
   
   // Analyze text using Hugging Face API
@@ -140,7 +181,7 @@ const response = await lastValueFrom(
     }
 
     // Analyze the extracted text for skills
-    const analysis = await this.analyzeSkills(extractedText);
+    const analysis = await this.analyzeWithHuggingFace(extractedText);
     return analysis;
   }
   async extractText(filePath: string, fileType: string): Promise<string> {
@@ -152,43 +193,19 @@ const response = await lastValueFrom(
       throw new Error('Unsupported file type');
     }
   }
-
-  async analyzeWithGPT(text: string) {
+  async analyzeWithGPT(text: string): Promise<any> {
     const apiKey = process.env.OPENAI_API_KEY;
-    const url = 'https://api.openai.com/v1/chat/completions'; // Updated endpoint for chat models
-    
-    console.log('Sending request to OpenAI with payload:');
-    console.log({
-      model: 'gpt-3.5-turbo', // Use gpt-3.5-turbo or gpt-4
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert in extracting technical skills from resumes.',
-        },
-        {
-          role: 'user',
-          content: `Extract technical skills from this resume:\n${text}`,
-        },
-      ],
-      max_tokens: 100,
-      temperature: 0.7,
-    });
+    const url = 'https://api.openai.com/v1/chat/completions';
   
     try {
-      const response = await this.httpService
-        .post(
+      const response = await lastValueFrom(
+        this.httpService.post(
           url,
           {
-            model: 'gpt-3.5-turbo', // Updated model
+            model: 'gpt-3.5-turbo',
             messages: [
-              {
-                role: 'system',
-                content: 'You are an expert in extracting technical skills from resumes.',
-              },
-              {
-                role: 'user',
-                content: `Extract technical skills from this resume:\n${text}`,
-              },
+              { role: 'system', content: 'You are an expert in analyzing resumes.' },
+              { role: 'user', content: `Extract skills from this resume:\n${text}` },
             ],
             max_tokens: 100,
             temperature: 0.7,
@@ -199,17 +216,22 @@ const response = await lastValueFrom(
               'Content-Type': 'application/json',
             },
           },
-        )
-        .pipe(map((res) => res.data.choices[0].message.content.trim()))
-        .toPromise();
+        ),
+      );
   
-      console.log('OpenAI API response:', response);
-      return response;
+      return response.data.choices[0].message.content.trim();
     } catch (error) {
-      console.error('Error during OpenAI API request:', error.response?.data || error.message);
-      throw new Error('Failed to analyze text with OpenAI API');
+      if (error.response?.data?.code === 'insufficient_quota') {
+        throw new Error('You have exceeded your OpenAI API quota. Please check your plan or add credits.');
+      } else {
+        throw new Error(`Error with OpenAI API: ${error.message}`);
+      }
     }
   }
   
+
+
+// Utilisation dans le code
+
   
 }
