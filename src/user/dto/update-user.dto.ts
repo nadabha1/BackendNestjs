@@ -9,5 +9,12 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
     idUser?: string;
     username?: string
     avatarUrl?: string;
+    role?: string;
+    @IsString()
+    @IsOptional()
+    dateOfBirth?: string;
+    @IsString()
+    @IsOptional()
+    country?: string;
 
 }

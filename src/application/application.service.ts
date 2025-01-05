@@ -7,6 +7,8 @@ import { UpdateApplicationDto } from './dto/update-application.dto';
 import { User } from 'src/user/entities/user.entity';
 import { Projet } from 'src/projet/entities/projet.entity';
 import { NotificationService } from 'src/notification/notification.service';
+import * as SibApiV3Sdk from 'sib-api-v3-sdk';
+
 @Injectable()
 export class ApplicationService {
   constructor(
@@ -14,6 +16,8 @@ export class ApplicationService {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Projet.name) private projectModel: Model<Projet>,
     private readonly notificationService: NotificationService, // Inject NotificationService
+    private readonly apiInstance: SibApiV3Sdk.TransactionalEmailsApi
+    
   ) {}
 
   async create(createApplicationDto: CreateApplicationDto): Promise<Application> {
@@ -241,6 +245,18 @@ export class ApplicationService {
     application.status = 'Accepted';
     await application.save(); // Sauvegarde de la mise à jour
 
+    const freelancer = await this.userModel.findById(freelancerId);
+    const project = await this.projectModel.findById(projectId);
+
+    if (freelancer && project) {
+      await this.sendApplicationNotification(
+        freelancer.email, // Assuming `email` is a property of `User`
+        freelancer.username,
+        'Accepted',
+        project.title,
+      );
+    }
+
     return application; // Retourne l'application mise à jour
   }
 
@@ -260,7 +276,37 @@ export class ApplicationService {
     application.status = 'Rejected';
     await application.save(); // Sauvegarde de la mise à jour
 
+    const freelancer = await this.userModel.findById(freelancerId);
+    const project = await this.projectModel.findById(projectId);
+
+    if (freelancer && project) {
+      await this.sendApplicationNotification(
+        freelancer.email, // Assuming `email` is a property of `User`
+        freelancer.username,
+        'Rejected',
+        project.title,
+      );
+    }
+
     return application; // Retourne l'application mise à jour
+  }
+  async sendApplicationNotification(to: string, userName: string, status: string, projectTitle: string): Promise<void> {
+    const emailData = {
+      sender: { email: 'nadabha135@gmail.com', name: 'Admin' },
+      to: [{ email: to }],
+      subject: `Application Result `,
+      htmlContent: `<h1>Hello ${userName},</h1>
+                    <p>Your application for the project <b>${projectTitle}</b> has been <b>${status.toLowerCase()}</b>.</p>
+                    <p>If you have any questions, feel free to contact us at freelancy@esprit.com.</p>`,
+    };
+
+    try {
+      const response = await this.apiInstance.sendTransacEmail(emailData);
+      console.log('Email sent successfully:', response);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new Error('Email sending failed.');
+    }
   }
 
 }

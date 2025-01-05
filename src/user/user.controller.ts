@@ -84,12 +84,19 @@ async getUser(@Body('username') username: string) {
 update(@Body() updateUserDto: UpdateUserDto) {
   return this.userService.update(updateUserDto.idUser, updateUserDto);
 }
+@Patch('updateProf')
+updateProf(@Query('email') email: string,@Body() updateUserDto: UpdateUserDto) {
+  console.log(updateUserDto)
+  return this.userService.updateand(email, updateUserDto);
+}
+
 
   @Patch('update/:id')  // Exemple d'URL: /user/update/:id
   async updateProfile(
     @Param('id') userId: string,
     @Body() updateUserProfileDto:UpdateUserDto
   ) {
+    console.log(updateUserProfileDto)
     return this.userService.updateProfile(userId, updateUserProfileDto);
   }
 
@@ -130,6 +137,7 @@ async getUserProfile(@Query('email') email: string): Promise<Partial<User>> {
         dateOfBirth: user.dateOfBirth,
         country: user.country,
         role: user.role,
+        skills : user.skills
     };
 }
 

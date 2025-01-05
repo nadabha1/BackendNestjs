@@ -150,7 +150,7 @@ import * as SibApiV3Sdk from 'sib-api-v3-sdk';
     const { username, password } = loginDto;
 
     // Check if the user exists
-    const user = await this.userModel.findOne({ username }).exec();
+    const user = await this.userModel.findOne({ email:username }).exec();
     if (!user) {
       throw new Error('Invalid email ');
     }
@@ -342,6 +342,15 @@ async findUsersInfoById(): Promise<User[]> {
       }
       return updatedUser;
     }
+    async updateand(username: string, updateUserDto: UpdateUserDto): Promise<User> {
+      const user = await this.userModel.findOne({ email : username });
+      const updatedUser = await this.userModel.findByIdAndUpdate(user._id, updateUserDto, { new: true }).exec();
+      if (!updatedUser) {
+        throw new NotFoundException('User not found');
+      }
+      return updatedUser;
+    }
+
     async updateC(username: string, updateUserDto: UpdateUserDto): Promise<User> {
       const user = await this.userModel.findOne({ username : username });
       const updatedUser = await this.userModel.findByIdAndUpdate(user._id, updateUserDto, { new: true }).exec();
@@ -392,7 +401,7 @@ async findUsersInfoById(): Promise<User[]> {
   // Verify OTP and Reset Password
   async verifyOtpAndResetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ newPassword: string }> {
     const { username, otp, newPassword } = resetPasswordDto;
-    const user = await this.userModel.findOne({ username }).exec();
+    const user = await this.userModel.findOne({ email :username }).exec();
     if (!user) {
       throw new NotFoundException('User with this email not found');
     }
