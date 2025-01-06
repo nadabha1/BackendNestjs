@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ApplicationService } from './application.service';
 import { ApplicationController } from './application.controller';
 import { MongooseModule } from '@nestjs/mongoose';  // Assurez-vous d'importer MongooseModule
@@ -8,6 +8,8 @@ import { User, UserSchema } from 'src/user/entities/user.entity';;  // Importer 
 import { NotificationModule } from 'src/notification/notification.module'; // Import the NotificationModule
 import { UserModule } from 'src/user/user.module';
 import * as SibApiV3Sdk from 'sib-api-v3-sdk';
+import { Task, TaskSchema } from 'src/task/entities/task.entity';
+import { TaskModule } from 'src/task/task.module';
 
 @Module({
   imports: [
@@ -17,8 +19,10 @@ import * as SibApiV3Sdk from 'sib-api-v3-sdk';
       { name: Application.name, schema: ApplicationSchema },
       { name: User.name, schema: UserSchema },
       { name: Projet.name, schema: ProjetSchema },
+      {name:Task.name , schema: TaskSchema }
     ]),
     NotificationModule, // Add the NotificationModule here
+    forwardRef(() => TaskModule),
   ],
   controllers: [ApplicationController],
   providers: [ApplicationService,

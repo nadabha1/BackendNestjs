@@ -13,7 +13,7 @@ export class TaskService {
     @InjectModel(Task.name) private taskModel: Model<TaskDocument>,
     @InjectModel(Application.name) private applicationModel: Model<ApplicationDocument>,
   ) {}
-
+ 
     async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
         const task = new this.taskModel(createTaskDto);
         return task.save();
@@ -22,7 +22,9 @@ export class TaskService {
     async getTasksByProject(projectId: string): Promise<Task[]> {
       return this.taskModel.find({ projet: projectId }).exec(); // Ensure `projet` is used as the field name
   }
-  
+  async findAll(): Promise<Task[]> {
+    return this.taskModel.find().populate('user projet').exec();
+  }
     async updateTask(taskId: string, updateTaskDto: UpdateTaskDto): Promise<Task> {
         const updatedTask = await this.taskModel.findByIdAndUpdate(taskId, updateTaskDto, { new: true });
         if (!updatedTask) {
@@ -50,4 +52,10 @@ export class TaskService {
       // Use the project ID from the application to find tasks
       return this.taskModel.find({ projet: application.project }).exec();
   }
+
+
+
+
+
+  
 }

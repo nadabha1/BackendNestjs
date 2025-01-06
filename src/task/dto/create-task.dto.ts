@@ -17,6 +17,6 @@ export class CreateTaskDto {
     @IsNotEmpty()
     projet: string;
 
-    @IsEnum(['To Do', 'Ongoing', 'Done', 'On Hold'], { message: 'Status must be To Do, Ongoing, Done, or On Hold' })
+    @IsEnum(['To Do', 'Ongoing', 'Done', 'On Hold','Scheduled'], { message: 'Status must be To Do, Ongoing, Done, or On Hold' })
     status: string;
 }

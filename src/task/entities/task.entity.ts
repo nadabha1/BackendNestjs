@@ -13,7 +13,7 @@ export class Task {
     @Prop({ required: true })
     description: string;
 
-    @Prop({ required: true, enum: ['To Do', 'Ongoing', 'Done', 'On Hold'] })
+    @Prop({ required: true, enum: ['To Do', 'Ongoing', 'Done', 'On Hold','Scheduled',] })
     status: string;
 
     @Prop({ type: Types.ObjectId, ref: 'User', required: true })
@@ -21,6 +21,8 @@ export class Task {
 
     @Prop({ type: Types.ObjectId, ref: 'Projet', required: true })
     projet: Projet;
+
+    
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

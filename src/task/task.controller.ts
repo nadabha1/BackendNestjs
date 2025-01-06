@@ -9,9 +9,11 @@ export class TaskController {
 
     @Post()
     async createTask(@Body() createTaskDto: CreateTaskDto) {
+        console.log('Task create method called');
         return this.taskService.createTask(createTaskDto);
     }
 
+    
     @Get(':projectId')
     async getTasksByProject(@Param('projectId') projectId: string) {
         return this.taskService.getTasksByProject(projectId);
@@ -30,5 +32,12 @@ export class TaskController {
     @Get('application/:applicationId')
     async getTasksByApplication(@Param('applicationId') applicationId: string) {
         return this.taskService.getTasksByApplication(applicationId);
+    }
+
+  
+
+    @Get()
+    findAll() {
+      return this.taskService.findAll();
     }
 }

@@ -8,6 +8,7 @@ import { User } from 'src/user/entities/user.entity';
 import { Projet } from 'src/projet/entities/projet.entity';
 import { NotificationService } from 'src/notification/notification.service';
 import * as SibApiV3Sdk from 'sib-api-v3-sdk';
+import { Task } from 'src/task/entities/task.entity';
 
 @Injectable()
 export class ApplicationService {
@@ -15,6 +16,7 @@ export class ApplicationService {
     @InjectModel(Application.name) private applicationModel: Model<ApplicationDocument>,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Projet.name) private projectModel: Model<Projet>,
+    @InjectModel(Task.name) private taskModel: Model<Task>,
     private readonly notificationService: NotificationService, // Inject NotificationService
     private readonly apiInstance: SibApiV3Sdk.TransactionalEmailsApi
     
@@ -290,6 +292,10 @@ export class ApplicationService {
 
     return application; // Retourne l'application mise à jour
   }
+  async getApplicationsByFreelancer(freelancerId: string) {
+    return this.applicationModel.find({ freelancer: freelancerId }).populate('project');
+}
+
   async sendApplicationNotification(to: string, userName: string, status: string, projectTitle: string): Promise<void> {
     const emailData = {
       sender: { email: 'nadabha135@gmail.com', name: 'Admin' },
@@ -308,5 +314,210 @@ export class ApplicationService {
       throw new Error('Email sending failed.');
     }
   }
+
+
+
+
+  
+
+
+  async getUsersByProjectId1(projectId: string): Promise<any[]> {
+    // Recherche des candidatures pour un projet spécifique
+    const applications = await this.applicationModel
+      .find({ project: projectId }) // Filtrer par projectId
+      .populate('freelancer') // Charger les informations du freelance
+      .exec();
+  
+    // Retourner uniquement les informations des freelances et le status de l'application, en supprimant les doublons
+    const uniqueUsers = [];
+    const seenIds = new Set();
+  
+    applications.forEach((application) => {
+      const freelancer = application.freelancer;
+      if (freelancer && !seenIds.has(freelancer._id.toString())) {
+        seenIds.add(freelancer._id.toString());
+        
+        // Ajouter un objet contenant les informations du freelance et le status de l'application
+        uniqueUsers.push({
+          id:application.id,
+          username: freelancer.username,
+          email: freelancer.email,
+          skills: freelancer.skills,
+          status: application.status
+        });
+      }
+    });
+  
+    return uniqueUsers;
+  }
+  // Service pour rechercher le statut de l'application
+
+
+
+  // Mettre à jour une candidature (changer son statut)
+  // Supprimer une candidature
+
+
+ 
+
+  // Méthode pour rejeter une candidature
+  
+  async getAcceptedApplications(): Promise<any[]> { 
+    
+    const acceptedApplications = await this.applicationModel
+        .find({ status: 'Accepted' })
+        .populate('freelancer', 'username email skills') // Populates freelancer details
+        .populate('project', 'title') // Populates freelancer details
+
+        .exec();
+
+    return acceptedApplications.map((app) => ({
+        id: app._id,
+        iduser: app.freelancer.id,
+        title:app.project.title,
+        username: app.freelancer.username,
+        email: app.freelancer.email,
+        skills: app.freelancer.skills || '',
+        status: app.status,
+    }));
+}
+async getApplicationById(appId: string): Promise<{ freelancer: string; project: string }> {
+  const application = await this.applicationModel
+    .findById(appId)
+    .populate('freelancer', '_id') // Ensure the freelancer field is populated with only the ID
+    .populate('project', '_id')    // Ensure the project field is populated with only the ID
+    .exec();
+
+  if (!application) {
+    throw new NotFoundException('Application not found');
+  }
+
+  return {
+    freelancer: application.freelancer?._id?.toString(), // Convert to string if necessary
+    project: application.project?._id?.toString(),       // Convert to string if necessary
+  };
+}
+async getTasksByProject(projectId: string): Promise<Task[]> {
+  return this.taskModel.find({ projet: projectId }).exec(); // Ensure projet is used as the field name
+}
+
+
+
+
+   
+async getAcceptedProjectsForFreelancer(freelancerId: string): Promise<any[]> {
+  // Fetch applications for the freelancer where status is "Accepted"
+  const applications = await this.applicationModel
+    .find({ freelancer: freelancerId, status: 'Accepted' }) // Filter by freelancerId and status
+    .populate('project') // Populate project details
+    .exec();
+
+  // Return unique projects without including application data
+  const uniqueProjects = [];
+  const seenIds = new Set();
+
+  applications.forEach((application) => {
+    const project = application.project;
+    if (project && !seenIds.has(project._id.toString())) {
+      seenIds.add(project._id.toString());
+      const { applications, ...projectWithoutApplications } = project.toObject();
+      uniqueProjects.push(projectWithoutApplications);
+    }
+  });
+
+  return uniqueProjects;
+}
+
+
+async getActiveProjectsForEntrepreneur(entrepreneurId: string): Promise<any[]> {
+  // Fetch all projects created by the entrepreneur
+  const projects = await this.projectModel.find({ userId: entrepreneurId }).exec();
+
+  if (!projects.length) {
+      throw new NotFoundException('projects found for entrepreneur with ID ${entrepreneurId}');
+  }
+
+  // Filter projects where at least one freelancer has been accepted
+  const activeProjects = [];
+
+  for (const project of projects) {
+      const acceptedApplications = await this.applicationModel
+          .find({ project: project._id, status: 'Accepted' }) // Filter accepted applications
+          .populate('freelancer') // Include freelancer details if needed
+          .exec();
+
+      if (acceptedApplications.length > 0) {
+          const projectData = {
+              ...project.toObject(),
+              acceptedFreelancers: acceptedApplications.map(app => app.freelancer), // Add acceptedFreelancers dynamically
+          };
+          activeProjects.push(projectData);
+      }
+  }
+
+  return activeProjects;
+}
+
+
+
+async getApplicationsCountByUser(userId: string): Promise<any[]> {
+  try {
+    // Ensure userId is correctly converted
+    const userObjectId = new Types.ObjectId(userId);
+
+    const result = await this.applicationModel.aggregate([
+      // Add fields to ensure project is an ObjectId
+      {
+        $addFields: {
+          project: { $toObjectId: '$project' },
+        },
+      },
+      // Join with the projets collection
+      {
+        $lookup: {
+          from: 'projets',
+          localField: 'project',
+          foreignField: '_id',
+          as: 'projectDetails',
+        },
+      },
+      // Match projects that belong to the provided userId
+      {
+        $match: {
+          'projectDetails.userId': userObjectId,
+        },
+      },
+      // Unwind the projectDetails array
+      {
+        $unwind: {
+          path: '$projectDetails',
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      // Group applications by project and count them
+      {
+        $group: {
+          _id: '$project',
+          count: { $sum: 1 },
+          projectDetails: { $first: '$projectDetails' },
+        },
+      },
+      // Project the final structure
+      {
+        $project: {
+          projectId: '$_id',
+          projectTitle: '$projectDetails.title',
+          applicationCount: '$count',
+        },
+      },
+    ]);
+
+    console.log('Aggregation Result:', result);
+    return result;
+  } catch (error) {
+    console.error('Error in getApplicationsCountByUser:', error.message);
+    throw new Error('Failed to get applications count by user');
+  }
+}
 
 }
